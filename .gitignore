@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# кэш плагина и всё, что он качает
+.cache/
+*.mp4
+*.webm
+*.wav
+
+# куки и токены здесь не место
+cookies*.txt
+*.netscape
+.env
