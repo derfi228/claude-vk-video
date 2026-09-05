@@ -137,6 +137,7 @@ def download(url, cookies, max_height, cache):
     proc = subprocess.run(
         ytdlp_cmd() + ytdlp_base(cookies) +
         ["-f", fmt, "--merge-output-format", "mp4", "--newline",
+         "-N", "4",  # длинные ролики ВК отдаёт кусками HLS, в один поток это часы
          "-o", str(cache / "video.%(ext)s"), url],
         stdout=progress, stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace")
     if proc.returncode != 0:
