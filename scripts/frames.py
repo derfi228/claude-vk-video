@@ -19,11 +19,16 @@ def _thin(items, limit):
 def _pass(ffmpeg, video, vf, out_dir, prefix, log):
     """Один проход ffmpeg. showinfo даёт точный pts каждого сохранённого кадра."""
     pattern = out_dir / f"{prefix}_%04d.jpg"
-    proc = subprocess.run(
-        [ffmpeg, "-y", "-loglevel", "info", "-i", str(video),
-         "-vf", f"{vf},{SCALE},showinfo", "-vsync", "vfr", "-q:v", "3", str(pattern)],
-        capture_output=True, text=True, encoding="utf-8", errors="replace",
-    )
+    # без vfr муксер image2 размножает кадры; -vsync выкинули в ffmpeg 9,
+    # -fps_mode не знают сборки до 5.1 — пробуем по очереди, а не гадаем по версии
+    for vfr in (["-fps_mode", "vfr"], ["-vsync", "vfr"]):
+        proc = subprocess.run(
+            [ffmpeg, "-y", "-loglevel", "info", "-i", str(video),
+             "-vf", f"{vf},{SCALE},showinfo", *vfr, "-q:v", "3", str(pattern)],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+        )
+        if proc.returncode == 0 or "nrecognized option" not in proc.stderr:
+            break
     if proc.returncode != 0:
         log(f"! кадры ({prefix}) не получились: {proc.stderr.strip()[-300:]}")
         return []
