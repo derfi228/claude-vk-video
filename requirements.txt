@@ -1,0 +1,11 @@
+# Обязательно: скачивание и метаданные
+yt-dlp>=2025.1.1
+
+# Транскрипт. Без него плагин работает — вернёт видео, кадры и warning.
+# Тянет ctranslate2 (~200 МБ) и качает модель при первом запуске.
+faster-whisper>=1.0.0
+
+# ffmpeg ставится системно, не через pip:
+#   Windows: winget install Gyan.FFmpeg
+#   macOS:   brew install ffmpeg
+#   Linux:   sudo apt install ffmpeg
