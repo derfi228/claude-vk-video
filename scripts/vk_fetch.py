@@ -19,7 +19,8 @@ import frames  # noqa: E402
 from vk_url import VkUrlError, parse_vk_url  # noqa: E402
 
 for stream in (sys.stdout, sys.stderr):  # Windows-консоль иначе давится кириллицей
-    stream.reconfigure(encoding="utf-8", errors="replace")
+    if hasattr(stream, "reconfigure"):
+        stream.reconfigure(encoding="utf-8", errors="replace")
 
 CACHE_ROOT = Path.home() / ".cache" / "vk-video"
 
@@ -181,7 +182,9 @@ def pipeline(args):
     else:
         info = fetch_meta(video_ref["canonical"], args.cookies_from_browser)
 
-    existing = [] if args.force else sorted(cache.glob("video.*"))
+    # кэш 480p не годится, если в этот раз просят 720p
+    stale = args.force or cached.get("max_height", args.max_height) < args.max_height
+    existing = [] if stale else sorted(cache.glob("video.*"))
     video = existing[0] if existing else download(
         video_ref["canonical"], args.cookies_from_browser, args.max_height, cache)
 
@@ -203,7 +206,7 @@ def pipeline(args):
             warnings.append(f"транскрипт не получился: {exc}")
             log(f"! транскрипт не получился: {exc}")
 
-    reuse = (cached.get("frames") and not args.force
+    reuse = (cached.get("frames") and not args.force and existing
              and len(cached["frames"]) <= args.max_frames
              and all(Path(f["path"]).exists() for f in cached["frames"]))
     if reuse:
@@ -221,6 +224,7 @@ def pipeline(args):
         "kind": video_ref["kind"],
         **info,
         "cache_dir": str(cache),
+        "max_height": args.max_height,
         "video_path": str(video),
         "audio_path": str(wav),
         "transcript_path": str(transcript_json) if transcript_json.exists() else None,
@@ -255,6 +259,9 @@ def main():
         result = {"ok": False, "error_code": exc.code, "message": exc.message}
     except KeyboardInterrupt:
         result = {"ok": False, "error_code": "interrupted", "message": "Прервано пользователем"}
+    except Exception as exc:  # что угодно ещё: диск, права, сеть — но не стектрейс в лицо
+        result = {"ok": False, "error_code": "unknown",
+                  "message": f"Неожиданная ошибка: {type(exc).__name__}: {exc}"}
 
     print(json.dumps(result, ensure_ascii=False, indent=1))
     sys.exit(0 if result["ok"] else 1)
