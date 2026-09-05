@@ -29,8 +29,16 @@
 
 ## Установка
 
+В Клоде (или тем же `claude plugin ...` из терминала):
+
 ```bash
-/plugin install derfi228/claude-vk-video
+/plugin marketplace add derfi228/claude-vk-video
+/plugin install vk-video@claude-vk-video
+```
+
+Дальше — зависимости, их Клод за вас не поставит:
+
+```bash
 pip install -r requirements.txt
 ```
 
@@ -143,7 +151,8 @@ frames instead of guessing from the title.
 No VK API token, no other plugins. `vkvideo.ru`, `vk.com` and `vk.ru` links all
 work: video pages, clips, embeds, playlist and wall links.
 
-**Install:** `/plugin install derfi228/claude-vk-video`, then
+**Install:** `/plugin marketplace add derfi228/claude-vk-video`, then
+`/plugin install vk-video@claude-vk-video`. After that
 `pip install -r requirements.txt` and system `ffmpeg`
 (`brew install ffmpeg` / `winget install Gyan.FFmpeg` / `sudo apt install ffmpeg`).
 `faster-whisper` is optional — skip it and you still get video and frames, plus a

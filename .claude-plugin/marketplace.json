@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "claude-vk-video",
+  "description": "Разбор видео из ВК: транскрипт с таймкодами, кадры, ответы по содержанию",
+  "owner": {
+    "name": "derfi228",
+    "url": "https://github.com/derfi228"
+  },
+  "plugins": [
+    {
+      "name": "vk-video",
+      "description": "Watch and analyze VK Video (vkvideo.ru / vk.com) — transcript, frames, summary",
+      "source": "./",
+      "category": "productivity"
+    }
+  ]
+}
