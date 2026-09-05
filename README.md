@@ -1,33 +1,40 @@
 # vk-video
 
-Плагин для Claude Code: «разбери вот это видео из ВК» — и Клод отвечает по
-содержанию. Скачивает ролик с `vkvideo.ru` / `vk.com`, достаёт звук, делает
-транскрипт с таймкодами, нарезает кадры и работает уже с ними.
+Клод не умеет смотреть видео из ВК. Плагин это чинит: кидаете ссылку и спрашиваете,
+о чём там, — он качает ролик, вытаскивает звук, прогоняет через whisper и нарезает
+кадры. Дальше Клод читает транскрипт с таймкодами и смотрит картинки, а не
+пересказывает заголовок.
 
-Никаких других плагинов и никакого VK API-токена не нужно.
+Токен VK API не нужен, другие плагины тоже. Работают `vkvideo.ru`, `vk.com` и
+`vk.ru` — страница видео, клип, embed, ссылка из плейлиста или со стены.
 
 ```
-Вы:   разбери https://vkvideo.ru/video-226836549_456240037,
-      выпиши основные тезисы и покажи, что на слайдах
+Вы:   разбери https://vkvideo.ru/video-17733403_456239836,
+      выпиши тезисы с таймкодами
 
-Клод: [python scripts/vk_fetch.py …]  скачиваю (<= 480p)… аудио 16 кГц моно…
-      whisper: модель small… кадров: смена сцены 27, сетка 40
+Клод: скачиваю (<= 480p)… аудио 16 кГц моно… whisper: модель small…
+      транскрипт: 237 сегментов … кадров: смена сцены 50, сетка 40
 
-      <краткая суть в 2–3 предложениях>
+      Десять минут про то, как устроена нейросеть, на школьной аналогии.
 
-      • 00:42 — тезис, подкреплённый таймкодом
-      • 07:15 — что показали на слайде в этот момент
-      • 21:03 — ответ на ваш вопрос, если он был
+      • 00:10 — школьник подгоняет ответ контрольной под верный, а потом
+                правит и предыдущее уравнение; отсюда и растёт обучение сети
+      • 02:50 — рекламная врезка про мобильную игру
+      • 04:40 — входной, скрытый и выходной слои: на выходе 10 нейронов,
+                по одному на цифру
 ```
+
+Это настоящий вывод, а не набросок: ролик Droider на 9:59 прошёл весь путь за
+4 минуты — скачивание, звук, whisper `small` на голом CPU, кадры.
 
 ## Установка
 
 ```bash
-/plugin install derfi228/vk-video
+/plugin install derfi228/claude-vk-video
 pip install -r requirements.txt
 ```
 
-Плюс системный `ffmpeg` — pip его не ставит:
+Отдельно нужен `ffmpeg` — pip его не ставит:
 
 | ОС | Команда |
 |---|---|
@@ -35,91 +42,123 @@ pip install -r requirements.txt
 | macOS | `brew install ffmpeg` |
 | Linux | `sudo apt install ffmpeg` / `sudo dnf install ffmpeg` |
 
-После установки откройте новый терминал, иначе `ffmpeg` не попадёт в PATH.
+После установки нужен новый терминал, иначе `ffmpeg` не окажется в PATH и плагин
+скажет, что его нет.
 
-`faster-whisper` из `requirements.txt` можно и не ставить: без него плагин вернёт
-видео и кадры, а в `warnings` напишет, что транскрипта не будет.
+`faster-whisper` в `requirements.txt` можно пропустить. Тогда вместо падения плагин
+вернёт видео с кадрами и припиской в `warnings`, что транскрипта не будет: по
+слайдам многое понятно и без звука.
 
-## Примеры запросов
+## Как спрашивать
 
-- `разбери https://vkvideo.ru/video-226836549_456240037`
+- `разбери <ссылка>`
 - `о чём этот ролик: <ссылка>`
 - `сделай конспект с таймкодами: <ссылка>`
 - `что показывают на слайдах в <ссылка>`
-- `в этом видео говорят про цены? <ссылка>`
+- `тут говорят про цены? <ссылка>`
 
-Скрипт можно дёргать и руками:
+Скрипт живёт своей жизнью и запускается руками:
 
 ```bash
 python scripts/vk_fetch.py "<URL>" --max-frames 20 --whisper-model medium
 ```
 
+В stdout уходит только JSON с путями до видео, звука, транскрипта и кадров;
+прогресс и ругань — в stderr.
+
 | Флаг | Зачем |
 |---|---|
-| `--max-height 720` | мелкий текст на слайдах; по умолчанию 480 |
+| `--max-height 720` | текст на слайдах совсем мелкий; по умолчанию 480 |
 | `--cookies-from-browser chrome` | закрытые сообщества, 18+, региональные блокировки |
 | `--no-transcribe` | нужны только кадры |
 | `--whisper-model tiny\|base\|small\|medium\|large-v3` | точность против времени |
 | `--max-frames 40` | потолок кадров |
 | `--force` | перекачать мимо кэша |
 
-Кэш — в `~/.cache/vk-video/{owner}_{id}/`. Второй вопрос по тому же ролику ничего
-не качает заново.
+## Что происходит внутри
 
-## Если не работает
+Качаем не выше 480p. Не из экономии ради экономии: в 480p текст на слайдах
+читается (кадр выходит 768 px по длинной стороне), а 33-минутный ролик — это
+всё равно четверть гигабайта. ВК отдаёт длинные видео фрагментами HLS, и в один
+поток та самая четверть гигабайта ехала 12 минут; с `-N 4` — минуту.
 
-1. **`Unable to extract` / `extractor_broken`** — ВК поменял отдачу видео.
-   `pip install -U yt-dlp` чинит это почти всегда. Не помогло — баг ещё открыт,
-   смотрите [issues yt-dlp](https://github.com/yt-dlp/yt-dlp/issues?q=is%3Aissue+vk).
-2. **`auth_required`** — видео приватное, 18+ или закрыто в регионе. Добавьте
-   `--cookies-from-browser chrome` (браузер при этом лучше закрыть).
-3. **`no_ffmpeg`** — см. таблицу выше.
+Кадры собираются из двух источников: детектор смены сцены ловит слайды и склейки,
+равномерная сетка страхует на случай, когда сцена не меняется полчаса. Дальше всё
+это прореживается до 40 штук, кадры смены сцены переживают прореживание первыми.
+Потолок жёсткий и обсуждению не подлежит: полсотни картинок забивают контекст, и
+думать Клоду уже нечем.
 
-Подробности — в [troubleshooting.md](skills/watch-vk-video/references/troubleshooting.md).
+Всё скачанное лежит в `~/.cache/vk-video/{owner}_{id}/`. Второй вопрос по тому же
+ролику отвечается за доли секунды, потому что качать уже нечего. `--force` кэш
+игнорирует.
 
-## Ограничения
+Мелочь, которая ломалась: в ffmpeg 9 выкинули `-vsync`, а в сборках до 5.1 ещё нет
+`-fps_mode`. Скрипт пробует сначала новый флаг, потом старый, вместо того чтобы
+гадать по строке версии.
 
-- Приватные видео, 18+ и закрытые сообщества — только через `--cookies-from-browser`.
-- Прямые эфиры не поддерживаются, ссылки на канал и плейлист целиком — тоже.
-- Качество транскрипта упирается в модель whisper: `small` путает имена и термины,
-  `medium` и `large-v3` лучше и медленнее. На CPU транскрипт часового ролика — это
-  десятки минут.
-- ВК периодически ломает извлечение видео, и yt-dlp догоняет с задержкой в дни.
-  Это не чинится на стороне плагина.
-- Распознавание — русский язык (`language="ru"` в `scripts/transcribe.py`).
+## Когда не работает
 
-## Про закон и вежливость
+`extractor_broken` — ВК опять поменял отдачу видео. Почти всегда лечится
+`pip install -U yt-dlp`; если нет, баг ещё открыт, смотрите
+[issues yt-dlp](https://github.com/yt-dlp/yt-dlp/issues?q=is%3Aissue+vk).
 
-Плагин скачивает видео во временный кэш на вашей машине, чтобы разобрать его
-локально, и ничего никуда не загружает. Соблюдение правил ВК и авторских прав —
-на вашей ответственности: не выкладывайте скачанное, не обходите ограничения
-доступа и не используйте чужие ролики так, как автор не разрешал.
+`auth_required` — ролик приватный, 18+ или закрыт в вашей стране. Единственный
+рабочий путь — куки браузера, где вы залогинены: `--cookies-from-browser chrome`.
+Браузер при этом лучше закрыть, иначе он держит базу кук занятой.
+
+`no_ffmpeg` — см. таблицу с командами выше.
+
+Остальные коды и что с ними делать — в
+[troubleshooting.md](skills/watch-vk-video/references/troubleshooting.md), этот же
+файл Клод читает сам, когда пайплайн падает.
+
+## Чего он не умеет
+
+- Прямые эфиры. Ссылка на канал или на плейлист целиком — тоже мимо, нужен
+  конкретный ролик.
+- Приватное без кук. Если у вас нет доступа к видео в браузере, его не будет и здесь.
+- Точный транскрипт на модели `small`: имена и термины она путает. Если в конспекте
+  важны фамилии и цифры — ставьте `medium`, она заметно медленнее и заметно лучше.
+- Русский по умолчанию: `language="ru"` прибит в `scripts/transcribe.py`.
+- Пережить очередной ремонт ВК. yt-dlp догоняет за дни, и это не чинится на нашей
+  стороне.
+
+## Про закон
+
+Плагин скачивает видео во временный кэш на вашей машине, разбирает его локально и
+никуда ничего не отправляет. Правила ВК и авторские права — на вас: не
+перевыкладывайте скачанное, не обходите ограничения доступа и не используйте чужие
+ролики так, как автор не разрешал.
 
 ---
 
 # vk-video (English)
 
-Claude Code plugin: paste a VK Video link, ask about the content. It downloads
-the clip from `vkvideo.ru` / `vk.com` via yt-dlp, extracts 16 kHz audio,
-transcribes it with faster-whisper (timestamps included), samples frames
-(scene-change + uniform grid), and hands Claude the paths.
+Claude can't watch VK videos. This plugin fixes that: give it a link, ask what the
+video is about, and it downloads the clip, pulls 16 kHz audio, transcribes it with
+faster-whisper (timestamps included) and samples frames — scene changes plus a
+uniform grid, capped at 40. Claude then reads the transcript and looks at the
+frames instead of guessing from the title.
 
-Self-contained: no other plugins, no VK API token.
+No VK API token, no other plugins. `vkvideo.ru`, `vk.com` and `vk.ru` links all
+work: video pages, clips, embeds, playlist and wall links.
 
-**Install:** `/plugin install derfi228/vk-video`, then `pip install -r requirements.txt`
-and system `ffmpeg` (`brew install ffmpeg` / `winget install Gyan.FFmpeg` /
-`sudo apt install ffmpeg`). `faster-whisper` is optional — without it you get
-video and frames plus a warning instead of a crash.
+**Install:** `/plugin install derfi228/claude-vk-video`, then
+`pip install -r requirements.txt` and system `ffmpeg`
+(`brew install ffmpeg` / `winget install Gyan.FFmpeg` / `sudo apt install ffmpeg`).
+`faster-whisper` is optional — skip it and you still get video and frames, plus a
+warning instead of a crash.
 
-**Usage:** just ask Claude — *"summarize https://vkvideo.ru/video-…"*, *"what's on
-the slides?"*, *"does the speaker mention pricing?"*. Or run the script directly:
-`python scripts/vk_fetch.py "<URL>" --max-frames 20`. Results are cached in
-`~/.cache/vk-video/`, so follow-up questions cost nothing.
+**Use it:** ask Claude — *"summarize https://vkvideo.ru/video-…"*, *"what's on the
+slides?"*, *"do they mention pricing?"*. Or run the script yourself:
+`python scripts/vk_fetch.py "<URL>" --max-frames 20`. It prints JSON to stdout and
+nothing else; progress goes to stderr. Everything lands in `~/.cache/vk-video/`, so
+the second question about the same video costs nothing.
 
-**Limits:** private / age-restricted / region-locked videos need
-`--cookies-from-browser chrome`; live streams are not supported; transcript
-quality depends on the whisper model; VK breaks the extractor now and then —
-`pip install -U yt-dlp` is the fix. Downloads land in a local cache for analysis
-only; respecting VK's terms and copyright is on you.
+**Caveats:** private, 18+ and geo-blocked videos need
+`--cookies-from-browser chrome`; live streams aren't supported; `small` whisper
+mangles names, use `medium` when they matter; VK breaks the extractor every few
+months and `pip install -U yt-dlp` is the fix. Downloads stay in a local cache for
+analysis — respecting VK's terms and copyright is on you.
 
 MIT.

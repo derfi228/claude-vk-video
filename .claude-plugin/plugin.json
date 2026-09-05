@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "description": "Watch and analyze VK Video (vkvideo.ru / vk.com) — transcript, frames, summary",
   "author": { "name": "derfi228" },
-  "homepage": "https://github.com/derfi228/vk-video",
-  "repository": "https://github.com/derfi228/vk-video",
+  "homepage": "https://github.com/derfi228/claude-vk-video",
+  "repository": "https://github.com/derfi228/claude-vk-video",
   "license": "MIT",
   "keywords": ["vk", "video", "transcript", "whisper", "russian"]
 }
