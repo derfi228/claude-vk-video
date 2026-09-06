@@ -1,6 +1,6 @@
 {
   "name": "vk-video",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Watch and analyze VK Video (vkvideo.ru / vk.com) — transcript, frames, summary",
   "author": { "name": "derfi228" },
   "homepage": "https://github.com/derfi228/claude-vk-video",
