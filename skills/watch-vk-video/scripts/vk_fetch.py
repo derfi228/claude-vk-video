@@ -185,6 +185,9 @@ def pipeline(args):
 
     # кэш 480p не годится, если в этот раз просят 720p
     stale = args.force or cached.get("max_height", args.max_height) < args.max_height
+    if stale:
+        for old in cache.glob("video.*"):
+            old.unlink()  # иначе yt-dlp увидит файл и не станет ничего качать
     existing = [] if stale else sorted(cache.glob("video.*"))
     video = existing[0] if existing else download(
         video_ref["canonical"], args.cookies_from_browser, args.max_height, cache)
