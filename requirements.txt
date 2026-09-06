@@ -9,3 +9,7 @@ faster-whisper>=1.0.0
 #   Windows: winget install Gyan.FFmpeg
 #   macOS:   brew install ffmpeg
 #   Linux:   sudo apt install ffmpeg
+
+# Только для обычного чата Claude Desktop (mcp_server.py). Для Claude Code
+# и Cowork не нужен — там работает скилл.
+mcp>=2.0.0
