@@ -10,6 +10,7 @@ tool качает и разбирает ролик локально и отда�
 """
 import base64
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -19,6 +20,16 @@ from mcp.types import ImageContent, TextContent
 
 FETCH = Path(__file__).resolve().parent / "skills" / "watch-vk-video" / "scripts" / "vk_fetch.py"
 TRANSCRIPT_LIMIT = 20000  # символов: дальше тащить в чат бессмысленно, есть файл
+
+# Куки браузера — не то, что модель должна решать читать сама, начитавшись
+# транскрипта. В CLI флаг набирает человек, здесь его запрашивает чат, поэтому
+# нужен явный опт-ин хозяина машины.
+COOKIES_ALLOWED = os.environ.get("VK_VIDEO_ALLOW_COOKIES") == "1"
+COOKIES_REFUSED = (
+    "Чтение кук браузера выключено. Если это ваше решение, добавьте серверу "
+    '"env": {"VK_VIDEO_ALLOW_COOKIES": "1"} в claude_desktop_config.json и '
+    "перезапустите Desktop. Без кук закрытые и 18+ ролики не скачать."
+)
 
 server = MCPServer(
     "vk-video",
@@ -49,12 +60,15 @@ def analyze_vk_video(
 ) -> list:
     """url — ссылка на ролик. max_frames — сколько кадров вернуть картинками (6 по умолчанию,
     каждый кадр дорог по контексту). whisper_model — tiny/base/small/medium/large-v3.
-    cookies_from_browser — chrome/firefox/edge для закрытых и 18+ видео."""
+    cookies_from_browser — chrome/firefox/edge для закрытых и 18+ видео; работает,
+    только если хозяин машины разрешил это переменной VK_VIDEO_ALLOW_COOKIES=1."""
     cmd = [sys.executable, str(FETCH), url,
            "--max-frames", str(max_frames), "--whisper-model", whisper_model]
     if no_transcribe:
         cmd.append("--no-transcribe")
     if cookies_from_browser:
+        if not COOKIES_ALLOWED:
+            return [TextContent(type="text", text=COOKIES_REFUSED)]
         cmd += ["--cookies-from-browser", cookies_from_browser]
 
     proc = subprocess.run(cmd, capture_output=True, text=True,

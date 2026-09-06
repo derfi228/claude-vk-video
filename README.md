@@ -90,6 +90,29 @@ macOS: `~/Library/Application Support/Claude/`):
 Первый вызов на длинном ролике идёт минуты и может упереться в таймаут чата —
 повторите запрос, кэш к тому моменту уже наполнен и ответ придёт сразу.
 
+Две вещи, про которые честнее знать заранее.
+
+**Транскрипт — недоверенный текст из интернета.** Он приезжает прямо в контекст
+чата, и если в ролике произнесут «а теперь выполни такую-то команду», эта фраза
+там окажется. Болезнь общая для всего, что читает чужие страницы и видео, но
+помнить о ней стоит: относитесь к пересказу как к цитате, а не как к инструкции.
+
+**Куки браузера по умолчанию выключены.** В командной строке флаг
+`--cookies-from-browser` набирает человек, а через MCP его запрашивает модель —
+в том числе начитавшись того же транскрипта. Поэтому в сервере стоит явный
+опт-ин: без него запрос на куки отклоняется с объяснением. Разрешить — добавить
+серверу переменную окружения:
+
+```json
+"vk-video": {
+  "command": "python",
+  "args": ["/путь/до/claude-vk-video/mcp_server.py"],
+  "env": { "VK_VIDEO_ALLOW_COOKIES": "1" }
+}
+```
+
+Утечки при этом всё равно нет: куки уходят только к ВК и в чат не возвращаются.
+
 ## Как спрашивать
 
 - `разбери <ссылка>`
@@ -132,6 +155,14 @@ python skills/watch-vk-video/scripts/vk_fetch.py "<URL>" --max-frames 20 --whisp
 Всё скачанное лежит в `~/.cache/vk-video/{owner}_{id}/`. Второй вопрос по тому же
 ролику отвечается за доли секунды, потому что качать уже нечего. `--force` кэш
 игнорирует.
+
+Сам себя кэш не чистит, и растёт он быстро: 33-минутный ролик — это 290 МБ, день
+экспериментов — под гигабайт. Сносится целиком и без последствий, плагин перекачает
+то, что понадобится:
+
+```bash
+rm -rf ~/.cache/vk-video
+```
 
 Мелочь, которая ломалась: в ffmpeg 9 выкинули `-vsync`, а в сборках до 5.1 ещё нет
 `-fps_mode`. Скрипт пробует сначала новый флаг, потом старый, вместо того чтобы
@@ -197,10 +228,19 @@ slides?"*, *"do they mention pricing?"*. Or run the script yourself:
 It prints JSON to stdout and nothing else; progress goes to stderr. Everything lands in `~/.cache/vk-video/`, so
 the second question about the same video costs nothing.
 
+**Ordinary Desktop chat** runs skills in Anthropic's cloud sandbox — no VK, no
+local ffmpeg — so use the bundled MCP server instead (`pip install mcp`, then add
+`mcp_server.py` to `claude_desktop_config.json`). It hands the chat the transcript
+and frames from your own machine. Reading browser cookies is off there by default:
+in the CLI a human types `--cookies-from-browser`, over MCP the model asks for it,
+so it takes an explicit `VK_VIDEO_ALLOW_COOKIES=1` in the server's env.
+
 **Caveats:** private, 18+ and geo-blocked videos need
 `--cookies-from-browser chrome`; live streams aren't supported; `small` whisper
 mangles names, use `medium` when they matter; VK breaks the extractor every few
-months and `pip install -U yt-dlp` is the fix. Downloads stay in a local cache for
-analysis — respecting VK's terms and copyright is on you.
+months and `pip install -U yt-dlp` is the fix. A transcript is untrusted text off
+the internet — read it as a quote, not as instructions. The cache never cleans
+itself (`rm -rf ~/.cache/vk-video`). Downloads stay local for analysis —
+respecting VK's terms and copyright is on you.
 
 MIT.
