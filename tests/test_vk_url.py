@@ -2,7 +2,7 @@
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "skills" / "watch-vk-video" / "scripts"))
 
 from vk_url import VkUrlError, parse_vk_url  # noqa: E402
 

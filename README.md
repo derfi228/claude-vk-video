@@ -68,7 +68,7 @@ pip install -r requirements.txt
 Скрипт живёт своей жизнью и запускается руками:
 
 ```bash
-python scripts/vk_fetch.py "<URL>" --max-frames 20 --whisper-model medium
+python skills/watch-vk-video/scripts/vk_fetch.py "<URL>" --max-frames 20 --whisper-model medium
 ```
 
 В stdout уходит только JSON с путями до видео, звука, транскрипта и кадров;
@@ -127,7 +127,7 @@ python scripts/vk_fetch.py "<URL>" --max-frames 20 --whisper-model medium
 - Приватное без кук. Если у вас нет доступа к видео в браузере, его не будет и здесь.
 - Точный транскрипт на модели `small`: имена и термины она путает. Если в конспекте
   важны фамилии и цифры — ставьте `medium`, она заметно медленнее и заметно лучше.
-- Русский по умолчанию: `language="ru"` прибит в `scripts/transcribe.py`.
+- Русский по умолчанию: `language="ru"` прибит в `skills/watch-vk-video/scripts/transcribe.py`.
 - Пережить очередной ремонт ВК. yt-dlp догоняет за дни, и это не чинится на нашей
   стороне.
 
@@ -160,8 +160,8 @@ warning instead of a crash.
 
 **Use it:** ask Claude — *"summarize https://vkvideo.ru/video-…"*, *"what's on the
 slides?"*, *"do they mention pricing?"*. Or run the script yourself:
-`python scripts/vk_fetch.py "<URL>" --max-frames 20`. It prints JSON to stdout and
-nothing else; progress goes to stderr. Everything lands in `~/.cache/vk-video/`, so
+`python skills/watch-vk-video/scripts/vk_fetch.py "<URL>" --max-frames 20`.
+It prints JSON to stdout and nothing else; progress goes to stderr. Everything lands in `~/.cache/vk-video/`, so
 the second question about the same video costs nothing.
 
 **Caveats:** private, 18+ and geo-blocked videos need

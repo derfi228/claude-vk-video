@@ -13,8 +13,11 @@ argument-hint: "<ссылка на ВК Видео> [вопрос о видео]
 
 ## Шаг 2. Запусти пайплайн
 
+Пути ниже — относительно каталога этого скилла, он назван в шапке как
+«Base directory for this skill». Подставляй его целиком, не запускай от `scripts/`.
+
 ```bash
-python "${CLAUDE_PLUGIN_ROOT}/scripts/vk_fetch.py" "<URL>"
+python "<каталог скилла>/scripts/vk_fetch.py" "<URL>"
 ```
 
 Полезные флаги: `--max-frames N`, `--max-height 720` (если нужен мелкий текст на
@@ -24,7 +27,7 @@ python "${CLAUDE_PLUGIN_ROOT}/scripts/vk_fetch.py" "<URL>"
 
 На stdout скрипт печатает **только JSON**. Разбери его.
 
-При `"ok": false` — прочитай `${CLAUDE_PLUGIN_ROOT}/skills/watch-vk-video/references/troubleshooting.md`,
+При `"ok": false` — прочитай `references/troubleshooting.md` рядом с этим файлом,
 найди свой `error_code` и объясни человеку, чего не хватает и что сделать. Никаких
 стектрейсов в лицо. Не выдумывай содержание видео, которое не скачалось.
 

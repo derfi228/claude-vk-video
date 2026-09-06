@@ -34,7 +34,7 @@
 Единственный рабочий путь — куки браузера, где человек залогинен в ВК:
 
 ```bash
-python "${CLAUDE_PLUGIN_ROOT}/scripts/vk_fetch.py" "<URL>" --cookies-from-browser chrome
+python "<каталог скилла>/scripts/vk_fetch.py" "<URL>" --cookies-from-browser chrome
 ```
 
 Вместо `chrome` бывает `firefox`, `edge`, `opera`, `brave`, `vivaldi`, `chromium`.
